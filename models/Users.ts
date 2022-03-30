@@ -7,6 +7,7 @@ const UsersSchema = new mongoose.Schema({
     password: String,
     status: String,
     image: String,
+    images:[String],
     modified: {
         type: Date,
         default: Date.now

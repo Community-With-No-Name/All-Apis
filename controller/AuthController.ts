@@ -86,6 +86,7 @@ class AuthController {
     // var decode = jwt.verify(req.headers['authorization'], key)
     // res.json({user: decode})
     await Users.find().then(users=>{
+      console.log(users)
       users && res.json({message: "All users Retrieved Successfully", data: users, total: users.length})
       !users && res.json({message: "Unexpected Error"})
     })
