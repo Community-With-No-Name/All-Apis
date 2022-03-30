@@ -13,59 +13,97 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const UserCourses_1 = __importDefault(require("../models/UserCourses"));
-// const key = process.env.SECRET_KEY || "secret"
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const key = process.env.SECRET_KEY || "secret";
 class UserCourseController {
     static AddCourse(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
-            // res.send(decode)
-            const { full_name, date, time, reason, phone_number, email } = req.body;
-            const newAppointment = {
-                full_name, date, time, reason, phone_number, email
-            };
-            yield UserCourses_1.default.findOne({ date, time })
-                .then((appointment) => {
-                if (appointment) {
-                    console.log(appointment);
-                    res.json({ message: "Sorry The selected date and time has been booked" });
-                }
-                if (!appointment) {
-                    // console.log(Appointment)
-                    UserCourses_1.default.create(newAppointment).then(() => {
-                        res.json({ data: newAppointment, message: "Booking Successful" });
+            var decode = jsonwebtoken_1.default.verify(req.headers['authorization'], key);
+            const { courseId, courseName } = req.body;
+            console.log(courseId, courseName);
+            const courses = yield UserCourses_1.default.findOne({ userId: decode === null || decode === void 0 ? void 0 : decode.userId });
+            const coursesToCheck = courses === null || courses === void 0 ? void 0 : courses.courses;
+            const checkCourses = coursesToCheck === null || coursesToCheck === void 0 ? void 0 : coursesToCheck.filter(i => i.courseName === courseName).length;
+            console.log(checkCourses);
+            if (checkCourses)
+                res.json({ error: `${courseName} already exists` });
+            if (!checkCourses) {
+                const course = yield UserCourses_1.default.findOne({ userId: decode === null || decode === void 0 ? void 0 : decode.userId });
+                if (!course) {
+                    UserCourses_1.default.create({
+                        userId: decode === null || decode === void 0 ? void 0 : decode.userId,
+                        courses: [{ courseId, courseName }]
                     });
+                    res.json({ message: "Course reg successful" });
                 }
-            })
-                .catch((err) => {
-                res.send("error" + err);
-            });
+                if (course) {
+                    const allCourses = course === null || course === void 0 ? void 0 : course.courses;
+                    const update = {
+                        userId: decode === null || decode === void 0 ? void 0 : decode.userId,
+                        modified: Date.now(),
+                        courses: [
+                            ...allCourses,
+                            { courseId, courseName }
+                        ]
+                    };
+                    yield UserCourses_1.default.findOneAndUpdate({ userId: decode === null || decode === void 0 ? void 0 : decode.userId }, {
+                        $set: update
+                    }, {
+                        new: true,
+                        runValidators: true,
+                        upsert: true,
+                        returnOriginal: false,
+                        returnNewDocument: true
+                    }).exec().then(() => res.json({ message: "Course Added Successfully" }));
+                }
+                // .catch((err) => {
+                //   res.send("error" + err);
+                // })
+            }
         });
     }
     static GetAllCourses(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
-            const pageData = Number(req.params.page) * 10;
-            const nextPageData = (Number(req.params.page) + 1) * 10;
-            yield UserCourses_1.default.find().then(appointment => {
-                appointment && res.json({ message: "All Appointments Retrieved Successfully", data: appointment.slice(pageData, nextPageData), total: appointment.length });
-                !appointment && res.json({ message: "Unexpected Error" });
+            var decode = jsonwebtoken_1.default.verify(req.headers['authorization'], key);
+            yield UserCourses_1.default.findOne({ userId: decode === null || decode === void 0 ? void 0 : decode.userId }).then(courses => {
+                courses && res.json({ message: "All User courses Retrieved Successfully", data: courses, total: courses.length });
+                !courses && res.json({ message: "Unexpected Error" });
             });
         });
     }
     static GetCourse(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield UserCourses_1.default.findOne({ _id: req.params.id }).then(appointment => {
-                appointment && res.json({ message: "Appointment Retrieved Successfully", data: appointment });
-                !appointment && res.json({ message: "No Appointment With that ID" });
+            var decode = jsonwebtoken_1.default.verify(req.headers['authorization'], key);
+            yield UserCourses_1.default.findOne({ userId: decode === null || decode === void 0 ? void 0 : decode.userId }).then(course => {
+                course && res.json({ message: "course Retrieved Successfully", data: course });
+                !course && res.json({ message: `No registered course found for ${decode === null || decode === void 0 ? void 0 : decode.fullName}` });
             });
         });
     }
     static DeleteCourse(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield UserCourses_1.default.findOneAndDelete({ _id: req.params.id }).then(() => __awaiter(this, void 0, void 0, function* () {
-                yield UserCourses_1.default.find().then(Appointment => {
-                    Appointment && res.json({ message: "All Appointment Items Retrieved Successfully", data: Appointment });
-                    !Appointment && res.json({ message: "Unexpected Error" });
-                });
-            }));
+            const { courseId } = req.params;
+            var decode = jsonwebtoken_1.default.verify(req.headers['authorization'], key);
+            yield Promise.all(UserCourses_1.default.findOne({ userId: decode === null || decode === void 0 ? void 0 : decode.userId, courses: {
+                    courseId
+                } }).then((course) => __awaiter(this, void 0, void 0, function* () {
+                var updatedCourse = course === null || course === void 0 ? void 0 : course.courses.filter(course => course.courseId !== courseId);
+                const update = {
+                    userId: decode === null || decode === void 0 ? void 0 : decode.userId,
+                    courses: [
+                        ...updatedCourse
+                    ]
+                };
+                yield UserCourses_1.default.findOneAndUpdate({ userId: decode === null || decode === void 0 ? void 0 : decode.userId }, {
+                    $set: update
+                }, {
+                    new: true,
+                    runValidators: true,
+                    upsert: true,
+                    returnOriginal: false,
+                    returnNewDocument: true
+                }).exec();
+            })));
         });
     }
 }

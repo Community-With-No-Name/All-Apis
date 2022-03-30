@@ -88,5 +88,27 @@ class QuestionsController {
             });
         });
     }
+    static DeleteCourse(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { courseId, questionId } = req.params;
+            yield Promise.all(Questions_1.default.findOne({ courseId, questions: {
+                    questionId
+                } }).then((question) => __awaiter(this, void 0, void 0, function* () {
+                var updatedquestion = question === null || question === void 0 ? void 0 : question.questions.filter(question => question.questionId !== questionId);
+                const update = Object.assign(Object.assign({}, question), { questions: [
+                        ...updatedquestion
+                    ] });
+                yield Questions_1.default.findOneAndUpdate({ courseId }, {
+                    $set: update
+                }, {
+                    new: true,
+                    runValidators: true,
+                    upsert: true,
+                    returnOriginal: false,
+                    returnNewDocument: true
+                }).exec();
+            })));
+        });
+    }
 }
 exports.default = QuestionsController;

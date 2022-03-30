@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose = require('mongoose');
 const CoursesSchema = new mongoose.Schema({
     courseName: String,
-    faculty: String,
+    faculty: [String],
     modified: {
         type: Date,
         default: Date.now

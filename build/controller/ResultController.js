@@ -19,55 +19,57 @@ class ResultController {
     static AddResult(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             var decode = jsonwebtoken_1.default.verify(req.headers['authorization'], key);
-            // res.send(decode)
-            const { full_name, date, time, reason, phone_number, email } = req.body;
-            const newAppointment = {
-                full_name, date, time, reason, phone_number, email
+            const { courseId, courseName, score, timeElapsed, timeLeft, date, time } = req.body;
+            const newResult = {
+                courseId, courseName, score, timeElapsed, timeLeft, date, time, userId: decode === null || decode === void 0 ? void 0 : decode.userId
             };
-            yield Results_1.default.findOne({ date, time })
-                .then((appointment) => {
-                if (appointment) {
-                    console.log(appointment);
-                    res.json({ message: "Sorry The selected date and time has been booked" });
-                }
-                if (!appointment) {
-                    // console.log(Appointment)
-                    Results_1.default.create(newAppointment).then(() => {
-                        res.json({ data: newAppointment, message: "Booking Successful" });
-                    });
-                }
+            decode && (decode === null || decode === void 0 ? void 0 : decode.userId) && (yield Results_1.default.create(newResult).then(() => {
+                res.json({ data: newResult, message: "Result Added Successfully" });
             })
                 .catch((err) => {
                 res.send("error" + err);
-            });
+            }));
         });
     }
     static GetAllResults(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
-            const pageData = Number(req.params.page) * 10;
-            const nextPageData = (Number(req.params.page) + 1) * 10;
-            yield Results_1.default.find().then(appointment => {
-                appointment && res.json({ message: "All Appointments Retrieved Successfully", data: appointment.slice(pageData, nextPageData), total: appointment.length });
-                !appointment && res.json({ message: "Unexpected Error" });
-            });
+            var decode = jsonwebtoken_1.default.verify(req.headers['authorization'], key);
+            decode && (decode === null || decode === void 0 ? void 0 : decode.userId) && (yield Results_1.default.find({ userId: decode === null || decode === void 0 ? void 0 : decode.userId }).then(result => {
+                result && res.json({ message: "All Results Retrieved Successfully", data: result, total: result.length });
+                !result && res.json({ message: "Unexpected Error" });
+            }));
         });
     }
-    static GetResult(req, res) {
+    static GetCourseResults(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield Results_1.default.findOne({ _id: req.params.id }).then(appointment => {
-                appointment && res.json({ message: "Appointment Retrieved Successfully", data: appointment });
-                !appointment && res.json({ message: "No Appointment With that ID" });
-            });
+            const { courseId } = req.params;
+            var decode = jsonwebtoken_1.default.verify(req.headers['authorization'], key);
+            decode && (decode === null || decode === void 0 ? void 0 : decode.userId) && (yield Results_1.default.find({ userId: decode === null || decode === void 0 ? void 0 : decode.userId, courseId }).then(result => {
+                result && res.json({ message: `All ${result === null || result === void 0 ? void 0 : result.courseName} retrieved successfully`, data: result, total: result.length });
+                !result && res.json({ message: "Unexpected Error" });
+            }));
+        });
+    }
+    static GetLatestResult(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { courseId } = req.params;
+            var decode = jsonwebtoken_1.default.verify(req.headers['authorization'], key);
+            decode && (decode === null || decode === void 0 ? void 0 : decode.userId) && (yield Results_1.default.findOne({ userId: decode === null || decode === void 0 ? void 0 : decode.userId, courseId }).sort({ created: -1 }).then(result => {
+                var _a;
+                result && res.json({ message: `${(_a = result[0]) === null || _a === void 0 ? void 0 : _a.courseName} result retrieved successfully`, data: result[0] });
+            }));
         });
     }
     static DeleteResult(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield Results_1.default.findOneAndDelete({ _id: req.params.id }).then(() => __awaiter(this, void 0, void 0, function* () {
-                yield Results_1.default.find().then(Appointment => {
-                    Appointment && res.json({ message: "All Appointment Items Retrieved Successfully", data: Appointment });
-                    !Appointment && res.json({ message: "Unexpected Error" });
+            const { courseId } = req.params;
+            var decode = jsonwebtoken_1.default.verify(req.headers['authorization'], key);
+            yield Promise.all(Results_1.default.findOneAndDelete({ userId: decode === null || decode === void 0 ? void 0 : decode.userId, courseId }).then(() => __awaiter(this, void 0, void 0, function* () {
+                yield Results_1.default.find().then(result => {
+                    result && res.json({ message: "All result Items Retrieved Successfully", data: result });
+                    !result && res.json({ message: "Unexpected Error" });
                 });
-            }));
+            })));
         });
     }
 }

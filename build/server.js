@@ -13,7 +13,7 @@ var QuestionsRouter = require('./routes/questions');
 var ResultsRouter = require('./routes/results');
 var UserCoursesRouter = require('./routes/userCourses');
 const PORT = process.env.PORT || 8000;
-const mongoURI = process.env.ATLAS_URI || "mongodb://localhost/CBT";
+const mongoURI = process.env.ATLAS_URI || "mongodb://localhost/TEAM_MANAGEMENT";
 const connection = mongoose_1.default.connect(mongoURI, {
     useNewUrlParser: true,
     useCreateIndex: true,
@@ -25,12 +25,12 @@ const connection = mongoose_1.default.connect(mongoURI, {
 app.use((0, cors_1.default)());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use(express_1.default.json());
-app.use('/api/auth', AuthRouter);
-app.use('/api/courses', CoursesRouter);
-app.use('/api/questions', QuestionsRouter);
-app.use('/api/results', ResultsRouter);
-app.use('/api/userCourses', UserCoursesRouter);
-app.get('/', (req, res) => res.send(`BlueForceTech ⚡️[server]: Server is running at https://localhost:${PORT}`));
+app.use('/team_management/auth', AuthRouter);
+app.use('/team_management/courses', CoursesRouter);
+app.use('/team_management/questions', QuestionsRouter);
+app.use('/team_management/results', ResultsRouter);
+app.use('/team_management/userCourses', UserCoursesRouter);
+app.get('/', (req, res) => res.send(`Team Management ⚡️[server]: Server is running at https://localhost:${PORT}`));
 app.listen(PORT, () => {
     console.log(`⚡️[server]: Server is running at https://localhost:${PORT}`);
 });

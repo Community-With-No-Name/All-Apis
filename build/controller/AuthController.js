@@ -15,12 +15,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const Users_1 = __importDefault(require("../models/Users"));
+const HandleResponse_1 = require("../HandleResponse");
 const key = process.env.SECRET_KEY || "secret";
 class AuthController {
     static Login(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             const { email, password } = req.body;
-            console.log(req.body);
+            // console.log(req.body);
             yield Users_1.default.findOne({ email }).then((user) => {
                 if (user) {
                     if (bcryptjs_1.default.compareSync(password, user.password)) {
@@ -35,50 +36,75 @@ class AuthController {
                         res.json(token);
                     }
                     else {
-                        res.json({ message: "Passwords do not match" });
+                        res.json({ error: "Passwords do not match" });
                     }
                 }
                 else {
                     res.json({
-                        message: "User does not exist",
+                        error: "User does not exist",
                     });
                 }
             });
         });
     }
-    static SignUp(req, res) {
+    static UpdateAccount(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { fullName, password, email, faculty, department } = req.body;
+            const { matric } = req.params;
+            const { password } = req.body;
+            bcryptjs_1.default.hash(password, 10, (err, hash) => {
+                Users_1.default.findOneAndUpdate({ matric }, {
+                    $set: { password: hash }
+                }, {
+                    new: true,
+                    runValidators: true,
+                    upsert: true,
+                    returnOriginal: false,
+                    returnNewDocument: true
+                }).exec()
+                    .then((user) => {
+                    (0, HandleResponse_1.HandleResponse)(res, 201, "Account Updated Successfully", user);
+                });
+            });
+        });
+    }
+    static CreateUser(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { email, full_name, matric, image, whatsapp } = req.body;
             const NewUser = {
-                fullName,
-                password,
                 email,
-                faculty,
-                department,
+                full_name,
+                matric,
+                password: "",
+                status: "Not Activated",
+                image,
+                whatsapp,
             };
-            yield Users_1.default.findOne({ email }).then((user) => {
+            yield Users_1.default.findOne({ email, matric })
+                .then((user) => {
+                if (user) {
+                    console.log(user);
+                    (0, HandleResponse_1.HandleResponse)(res, 500, `${matric} exists already`, user);
+                }
                 if (!user) {
-                    bcryptjs_1.default.hash(password, 10, (err, hash) => {
-                        NewUser.password = hash;
-                        const hashedUser = new Users_1.default(NewUser);
-                        // Customer.create(customerData).then(() => {
-                        hashedUser.save().then(() => {
-                            res.json({ message: `${fullName}'s Account Created Successfully` });
-                        });
+                    // console.log(users)
+                    Users_1.default.create(NewUser).then(() => {
+                        (0, HandleResponse_1.HandleResponse)(res, 200, `${matric} added to the user list successfully`, NewUser);
                     });
                 }
-                else {
-                    res.json({
-                        message: "An account already exists with that email address"
-                    });
-                }
+            })
+                .catch((err) => {
+                res.send("error" + err);
             });
         });
     }
-    static GetUser(req, res) {
+    static GetUsers(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
-            var decode = jsonwebtoken_1.default.verify(req.headers['authorization'], key);
-            res.json({ user: decode });
+            // var decode = jwt.verify(req.headers['authorization'], key)
+            // res.json({user: decode})
+            yield Users_1.default.find().then(users => {
+                users && res.json({ message: "All users Retrieved Successfully", data: users, total: users.length });
+                !users && res.json({ message: "Unexpected Error" });
+            });
         });
     }
 }
